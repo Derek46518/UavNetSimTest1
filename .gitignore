@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.log
+*.gif
+.vscode/
+.venv/
+.claude/
+img/
