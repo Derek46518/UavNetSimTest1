@@ -8,6 +8,7 @@ from entities.packet import DataPacket, RtsPacket, CtsPacket
 from routing.dsdv.dsdv import Dsdv
 from routing.greedy.greedy import Greedy
 from routing.mc_greedy.mc_greedy import MCGreedy
+from routing.macg.macg import MACG
 from routing.qfanet.qfanet import QFanet
 from routing.qgeo.qgeo import QGeo
 from routing.cr_qgeo.cr_qgeo import CRQGeo
@@ -112,6 +113,8 @@ class Drone:
             self.routing_protocol = Greedy(self.simulator, self)
         elif config.ROUTING_PROTOCOL == "mc_greedy":
             self.routing_protocol = MCGreedy(self.simulator, self)
+        elif config.ROUTING_PROTOCOL == "macg":
+            self.routing_protocol = MACG(self.simulator, self)
         elif config.ROUTING_PROTOCOL == "qfanet":
             self.routing_protocol = QFanet(self.simulator, self)
         elif config.ROUTING_PROTOCOL == "qgeo":

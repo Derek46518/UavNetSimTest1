@@ -15,7 +15,7 @@ HETEROGENEOUS = 0  # heterogeneous network support (in terms of speed)
 DRONE_SPEED = 10  # m/s, homogeneous drone speed used when HETEROGENEOUS = 0
 LOGGING_LEVEL = logging.INFO  # whether to print the detail information during simulation
 
-# routing protocol selector: "dsdv", "greedy", "mc_greedy", "qfanet", "qgeo" or "cr_qgeo"
+# routing protocol selector: "dsdv", "greedy", "mc_greedy", "macg", "qfanet", "qgeo" or "cr_qgeo"
 ROUTING_PROTOCOL = "mc_greedy"  # keep "dsdv" as default so existing simulator behavior does not silently change
 
 # ------------------ MC-Greedy routing parameters ------------------ #
@@ -23,6 +23,39 @@ MC_GREEDY_PROGRESS_WEIGHT = 0.50  # alpha: weight of geographic progress
 MC_GREEDY_STABILITY_WEIGHT = 0.30  # beta: weight of predicted mobility/link stability
 MC_GREEDY_CONGESTION_WEIGHT = 0.20  # gamma: weight of neighbor queue congestion
 MC_GREEDY_PREDICTION_TIME = 0.50  # seconds, look-ahead horizon for link-stability prediction
+
+# ------------------ MACG routing parameters ------------------ #
+# Mobility similarity weights (must sum to 1)
+MACG_POSITION_WEIGHT = 0.40
+MACG_VELOCITY_WEIGHT = 0.60
+
+# Normalization constant for velocity-similarity; expressed relative to the configured baseline
+# drone speed since the simulator has no single global "max speed" constant available for the
+# heterogeneous case. Purely a normalization constant for S_velocity, clamped to [0, 1] afterward.
+MACG_MAX_VELOCITY_DIFFERENCE = 2 * DRONE_SPEED
+
+# Timing (in us, following repository convention)
+MACG_HELLO_INTERVAL = 0.5 * 1e6
+MACG_BOOTSTRAP_DELAY = 1.0 * 1e6
+MACG_NOMINATION_WINDOW = 0.25 * 1e6
+MACG_CH_DECLARATION_WINDOW = 0.25 * 1e6
+MACG_JOIN_WINDOW = 0.50 * 1e6
+
+MACG_NOMINATION_THRESHOLD = 2
+
+MACG_MAINTENANCE_INTERVAL = 1.0 * 1e6
+MACG_MEMBER_MISS_LIMIT = 2
+MACG_CH_MISS_LIMIT = 2
+
+MACG_VISITED_CLUSTER_LIMIT = 8
+
+# MACG control packet framing (Hello reuses HELLO_PACKET_LENGTH, following the convention already
+# used by Greedy/MC-Greedy/DSDV hello packets)
+MACG_CONTROL_PAYLOAD_LENGTH = 512  # bit
+# NOTE: MACG_CONTROL_PACKET_LENGTH itself is defined further below (see "packet parameters" /
+# "physical layer" section) since it depends on IP_HEADER_LENGTH, MAC_HEADER_LENGTH and
+# PHY_HEADER_LENGTH, which are only defined later in this file.
+# MACG_CONTROL_PACKET_LENGTH = IP_HEADER_LENGTH + MAC_HEADER_LENGTH + PHY_HEADER_LENGTH + MACG_CONTROL_PAYLOAD_LENGTH
 
 # ------------------ CR-QGeo routing parameters ------------------ #
 CR_QGEO_CONGESTION_WEIGHT = 0.40  # weight of queue congestion penalty in the intermediate reward
@@ -74,11 +107,16 @@ ACK_PACKET_LENGTH = ACK_HEADER_LENGTH + 14 * 8  # bit
 HELLO_PACKET_PAYLOAD_LENGTH = 256  # bit
 HELLO_PACKET_LENGTH = IP_HEADER_LENGTH + MAC_HEADER_LENGTH + PHY_HEADER_LENGTH + HELLO_PACKET_PAYLOAD_LENGTH
 
+# MACG control packet length (NOMINATION / CH_DECLARE / JOIN_REQUEST / JOIN_ACCEPT / CLUSTER_STATE /
+# MAINTENANCE / MAINT_RESPONSE / GATEWAY_UPDATE all share this framing; MACG Hello reuses
+# HELLO_PACKET_LENGTH above, following the convention already used by Greedy/MC-Greedy/DSDV)
+MACG_CONTROL_PACKET_LENGTH = IP_HEADER_LENGTH + MAC_HEADER_LENGTH + PHY_HEADER_LENGTH + MACG_CONTROL_PAYLOAD_LENGTH
+
 # define the range of "id" of different types of packets
 """
-|--------------|--------------|--------------|--------------|--------------|--------------|--------------|
-0            10000          20000          30000          40000          50000          60000
-|   data pkt   |   hello pkt  |    ack pkt   |    vf pkt    |   grad msg   |    rts pkt   |    cts pkt   |
+|--------------|--------------|--------------|--------------|--------------|--------------|--------------|--------------|
+0            10000          20000          30000          40000          50000          60000          70000
+|   data pkt   |   hello pkt  |    ack pkt   |    vf pkt    |   grad msg   |    rts pkt   |    cts pkt   | macg ctl pkt |
 """
 GL_ID_DATA_PACKET = 0
 GL_ID_HELLO_PACKET = 10000
@@ -87,6 +125,7 @@ GL_ID_VF_PACKET = 30000
 GL_ID_GRAD_MESSAGE = 40000
 GL_ID_RTS_PACKET = 50000
 GL_ID_CTS_PACKET = 60000
+GL_ID_MACG_CONTROL_PACKET = 70000
 
 # ------------------ physical layer parameters ------------------- #
 BIT_RATE = IEEE_802_11['bit_rate']
