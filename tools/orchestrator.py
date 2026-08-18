@@ -104,12 +104,24 @@ def main():
     p.add_argument('--only-failed', action='store_true')
     p.add_argument('--logging-level', default='WARNING')
     p.add_argument('--dry-run', action='store_true')
+    p.add_argument('--scenario-ids', default=None,
+                    help='Comma-separated subset of scenario_ids to run (for validation/targeted reruns).')
+    p.add_argument('--exclude-scenario-ids', default=None,
+                    help='Comma-separated scenario_ids to exclude from the matrix (e.g. to defer a slow tier).')
     args = p.parse_args()
 
     out_root = Path(args.out_root)
     out_root.mkdir(parents=True, exist_ok=True)
 
     matrix = build_matrix(args.experiment)
+
+    if args.scenario_ids:
+        wanted = set(args.scenario_ids.split(','))
+        matrix = [s for s in matrix if s["scenario_id"] in wanted]
+
+    if args.exclude_scenario_ids:
+        excluded = set(args.exclude_scenario_ids.split(','))
+        matrix = [s for s in matrix if s["scenario_id"] not in excluded]
 
     if args.only_failed:
         matrix = [s for s in matrix if scenario_status(out_root, s["scenario_id"]) != "done"]
